@@ -25,12 +25,12 @@ For project {repo} complete a code migration under folder {folder} (determine or
 
 2. Using github tools, extract content of the file, use Base64 decode tool to get content of the files;
 
-3. Migrate files to code language {pl}, store results of each file in similar structure within the same github repository with folder structure prefix {pl}, example: {pl}/folder1/subfolder1/file1, {pl}/folder2/file2, etc (use create file in github tool for this);
+3. Migrate files to code language {pl}, store results of each file in similar structure within the new repo {pl}-{repo} (verify if it exist via github tool for user repos,create if not exist) repository with folder structure prefix {pl}, example: {pl}/folder1/subfolder1/file1, {pl}/folder2/file2, etc (use create file in github tool for this);
 
-4. upload and commit code to same {repo}, if it fails, tey to verify if file exist and edit it in same {repo};
+4. upload and commit code to new repo {pl}-{repo} (verify if it exist via github tool for user repos, create if not exist), if it fails, tey to verify if file exist and edit it in same new repo {pl}-{repo};
 
 5. generate configuration and setup files for target language with respective dependencies mentioned in migrated files under folder structure prefix {pl}; 
-6. upload and commit configuration to same {repo};
+6. upload and commit configuration to a new repo {pl}-{repo} (verify if it exist via github tool for user repos, create if not exist);
 
 7. make sure all files created and uploaded to github;
 
