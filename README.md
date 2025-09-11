@@ -40,3 +40,4 @@ For project {repo} complete a code migration under folder {folder} (determine or
 migrate project {repo} = https://github.com/pmgridd/cobol-samples.git {folder} = /src/main/cobol/ATTRACT.CBL {pl} = "java"
 
 ![alt text](img/general_view.png)
+
