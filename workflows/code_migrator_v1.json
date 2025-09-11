@@ -1,0 +1,523 @@
+{
+  "name": "code_migrator_v1",
+  "nodes": [
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chatTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        0,
+        -16
+      ],
+      "id": "b463d6b7-36d1-4938-bbcc-09717282fd67",
+      "name": "When chat message received",
+      "webhookId": "eb96da5a-2be7-4fd5-bcf3-352774d67e49"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        16,
+        224
+      ],
+      "id": "1d8e2fd9-0c06-4aaf-9728-fd034f48cdd7",
+      "name": "Google Gemini Chat Model",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "sXf1HqceuNvcNe65",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Control clone operation git.",
+        "operation": "clone",
+        "repositoryPath": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('New_Repository_Path', ``, 'string') }}",
+        "sourceRepository": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Source_Repository', ``, 'string') }}"
+      },
+      "type": "n8n-nodes-base.gitTool",
+      "typeVersion": 1,
+      "position": [
+        576,
+        528
+      ],
+      "id": "72262bbb-3eca-46c0-baf5-71a36f7f0b86",
+      "name": "git - clone repo"
+    },
+    {
+      "parameters": {
+        "description": "create dir if you get error it's not exist",
+        "language": "python",
+        "pythonCode": "import os\n\nos.makedirs(query, exist_ok=True)\n\nreturn \"Dir created:\" + query"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        1008,
+        416
+      ],
+      "id": "52d62b97-6d99-4f71-a620-be0fd480da47",
+      "name": "Create DIR"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Get a user's repositories in GitHub",
+        "resource": "user",
+        "owner": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Repository_Owner', ``, 'string') }}"
+        },
+        "returnAll": true
+      },
+      "type": "n8n-nodes-base.githubTool",
+      "typeVersion": 1.1,
+      "position": [
+        -64,
+        816
+      ],
+      "id": "3db3033d-8a5b-4244-b068-c18c3a4962c4",
+      "name": "Get a user's repositories in GitHub",
+      "webhookId": "694bd1b7-d738-4687-b6ea-c46ca23b80c1",
+      "credentials": {
+        "githubApi": {
+          "id": "rrt6i1DGAKY1I5dL",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "Delete directory",
+        "language": "python",
+        "pythonCode": "\nimport shutil\nimport os\n\nos.makedirs(query, exist_ok=True)\nshutil.rmtree(query)\nreturn \"Dir deleted: \" + query"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        1184,
+        416
+      ],
+      "id": "9cc148a5-0f35-4004-97c0-210aa2cedef8",
+      "name": "Delete DIR"
+    },
+    {
+      "parameters": {
+        "description": "call this tool to get tree structure and see content of the folder provided in query",
+        "language": "python",
+        "pythonCode": "import os\nimport sys\n\ntry:\n    base_path = query\nexcept IndexError:\n    base_path = \".\"  \n\ndef get_dir_tree_string(base_path):\n    \"\"\"\n    Returns a multi-line string of the directory tree.\n    \"\"\"\n    if not os.path.isdir(base_path):\n        return f\"Error: Path is not a valid directory: {base_path}\"\n        \n    output_lines = []\n    \n    # Use os.walk() to get all paths recursively\n    for dirpath, dirnames, filenames in os.walk(base_path):\n        # Add the directory path itself\n        output_lines.append(f\"{dirpath}{os.sep}\")\n        \n        # Add the file paths in the current directory\n        for filename in filenames:\n            file_path = os.path.join(dirpath, filename)\n            output_lines.append(file_path)\n\n    # Join all lines into a single string with newlines\n    return \"\\n\".join(output_lines)\n\ntry:\n    # Generate and print the directory tree string\n    tree_string = get_dir_tree_string(base_path)\n    return \"Exist: \" + tree_string\n\nexcept Exception as e:\n    return f\"An error occurred: {str(e)}\""
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        864,
+        416
+      ],
+      "id": "4386748b-856f-4030-9908-f12c36d032a9",
+      "name": "Dir structure"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "={{ $json.chatInput }}\n\nYou are highly trained specialist who can migrate any code to any other languages and platforms. \n\nFor project {repo} complete a code migration under folder {folder} (determine original language) of specific files to programming language {pl}. If you see one file, not a folder, just migrate this file. Make sure all proper configuration and build tools configs for the target generated as well. language Retry several times and verify if files exist. Important logic approach steps:\n\n1. Iterate over all file under folder {folder} and it's subfolders, formulate a list of files to migrate in a form of dir structure like: /folder1/subfolder1/file1, /folder2/file2, etc. Ignore files like documentation, exec files - consider only important with code;\n\n2. Using github tools, extract content of the file, use Base64 decode tool to get content of the files;\n\n3. Migrate files to code language {pl}, store results of each file in similar structure within the same github repository with folder structure prefix {pl}, example: {pl}/folder1/subfolder1/file1, {pl}/folder2/file2, etc (use create file in github tool for this);\n\n4. upload and commit code to same {repo}, if it fails, tey to verify if file exist and edit it in same {repo};\n\n5. generate configuration and setup files for target language with respective dependencies mentioned in migrated files under folder structure prefix {pl}; \n6. upload and commit configuration to same {repo};\n\n7. make sure all files created and uploaded to github;",
+        "options": {
+          "maxIterations": 1000000000
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 2.2,
+      "position": [
+        272,
+        -16
+      ],
+      "id": "d5f74a70-6424-48fb-994b-c81de163b939",
+      "name": "Project Creator Agent",
+      "retryOnFail": true,
+      "alwaysOutputData": false,
+      "executeOnce": false
+    },
+    {
+      "parameters": {
+        "operation": "status",
+        "repositoryPath": "={{ $fromAI('Repository_Path', ``, 'string') }}"
+      },
+      "type": "n8n-nodes-base.gitTool",
+      "typeVersion": 1,
+      "position": [
+        400,
+        528
+      ],
+      "id": "d1822e0c-7151-4a7c-aeca-1efe1f202db9",
+      "name": "Git - project status"
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "list",
+        "owner": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Repository_Owner', ``, 'string') }}"
+        },
+        "repository": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Repository_Name', ``, 'string') }}"
+        },
+        "filePath": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Path', ``, 'string') }}"
+      },
+      "type": "n8n-nodes-base.githubTool",
+      "typeVersion": 1.1,
+      "position": [
+        -240,
+        816
+      ],
+      "id": "f46ff5f3-ab2e-46f0-9879-4af3cd3b7853",
+      "name": "List files in GitHub",
+      "webhookId": "851dda6a-5ff7-4a92-ba7f-af3cbcf11975",
+      "credentials": {
+        "githubApi": {
+          "id": "rrt6i1DGAKY1I5dL",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "owner": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Repository_Owner', ``, 'string') }}"
+        },
+        "repository": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Repository_Name', ``, 'string') }}"
+        },
+        "filePath": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('File_Path', ``, 'string') }}",
+        "fileContent": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('File_Content', ``, 'string') }}",
+        "commitMessage": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Commit_Message', ``, 'string') }}"
+      },
+      "type": "n8n-nodes-base.githubTool",
+      "typeVersion": 1.1,
+      "position": [
+        -608,
+        816
+      ],
+      "id": "155f0c12-3776-41cc-86e4-aadb3332c155",
+      "name": "Create a file in GitHub",
+      "webhookId": "27d4938f-1fd2-4f4d-bc96-8c1d0f0812c4",
+      "credentials": {
+        "githubApi": {
+          "id": "rrt6i1DGAKY1I5dL",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "file",
+        "operation": "get",
+        "owner": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Repository_Owner', ``, 'string') }}"
+        },
+        "repository": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Repository_Name', ``, 'string') }}"
+        },
+        "filePath": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('File_Path', ``, 'string') }}",
+        "asBinaryProperty": false,
+        "additionalParameters": {
+          "reference": "={{ $fromAI('Reference', ``, 'string') }}"
+        }
+      },
+      "type": "n8n-nodes-base.githubTool",
+      "typeVersion": 1.1,
+      "position": [
+        -800,
+        816
+      ],
+      "id": "5cb9fcc3-30f1-4835-9444-bff8326b32a4",
+      "name": "Get a file in GitHub",
+      "webhookId": "5b15cca1-3ed3-4db5-bfb4-3546b1ec524b",
+      "credentials": {
+        "githubApi": {
+          "id": "rrt6i1DGAKY1I5dL",
+          "name": "GitHub account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "description": "call this tool to decode base64 string",
+        "language": "python",
+        "pythonCode": "import base64\n\ndef fix_base64_padding(s):\n    \"\"\"\n    Adds padding to a Base64 string if it's missing.\n    \"\"\"\n    # Calculate the number of padding characters needed\n    padding_needed = len(s) % 4\n    if padding_needed != 0:\n        s += '=' * (4 - padding_needed)\n    return s\n\nencoded_bytes = query.encode('utf-8')\n\n# Step 2: Decode the Base64 bytes to regular bytes.\ndecoded_bytes = base64.b64decode(encoded_bytes)\n\n# Step 3: Decode the regular bytes back to a string.\ndecoded_string = decoded_bytes.decode('utf-8')\n\nreturn fix_base64_padding(decoded_string)"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        1408,
+        416
+      ],
+      "id": "6bd91bea-b96e-4ba9-8e2c-38d355078515",
+      "name": "Base64 Decode"
+    },
+    {
+      "parameters": {
+        "description": "get data from file",
+        "jsCode": "// The 'data' variable contains the output of the previous node.\nconst fileData = data.item.binary;\n\n// Check if binary data exists\nif (fileData) {\n  // Use the built-in helper to get the binary data as a string\n  const fileContent = await this.helpers.get = await this.helpers.getBinaryData('utf8');\n  \n  // Return the file content as a new item in the workflow\n  return [{ json: { fileContent } }];\n}\n\n// Return an empty item if no binary data was found\nreturn [{}];"
+      },
+      "type": "@n8n/n8n-nodes-langchain.toolCode",
+      "typeVersion": 1.3,
+      "position": [
+        1952,
+        416
+      ],
+      "id": "84da023f-c154-463b-9be3-cab3b1a8e3c6",
+      "name": "Data from file"
+    },
+    {
+      "parameters": {},
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        832,
+        64
+      ],
+      "id": "7b8453f5-a587-4c3f-8e8c-ce041df95a2d",
+      "name": "Simple Memory"
+    },
+    {
+      "parameters": {
+        "descriptionType": "manual",
+        "toolDescription": "Edit a file in GitHub",
+        "resource": "file",
+        "operation": "edit",
+        "owner": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Repository_Owner', ``, 'string') }}"
+        },
+        "repository": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Repository_Name', ``, 'string') }}"
+        },
+        "filePath": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('File_Path', ``, 'string') }}",
+        "fileContent": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('File_Content', ``, 'string') }}",
+        "commitMessage": "={{ /*n8n-auto-generated-fromAI-override*/ $fromAI('Commit_Message', ``, 'string') }}"
+      },
+      "type": "n8n-nodes-base.githubTool",
+      "typeVersion": 1.1,
+      "position": [
+        -416,
+        816
+      ],
+      "id": "4b036824-32f0-440d-acde-2995bf1eed9f",
+      "name": "Edit a file in GitHub",
+      "webhookId": "eda87b04-f89f-4a2f-a023-e085c95cc3ef",
+      "credentials": {
+        "githubApi": {
+          "id": "rrt6i1DGAKY1I5dL",
+          "name": "GitHub account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When chat message received": {
+      "main": [
+        [
+          {
+            "node": "Project Creator Agent",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Google Gemini Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Project Creator Agent",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "git - clone repo": {
+      "ai_tool": [
+        [
+          {
+            "node": "Project Creator Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create DIR": {
+      "ai_tool": [
+        [
+          {
+            "node": "Project Creator Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a user's repositories in GitHub": {
+      "ai_tool": [
+        [
+          {
+            "node": "Project Creator Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Delete DIR": {
+      "ai_tool": [
+        [
+          {
+            "node": "Project Creator Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dir structure": {
+      "ai_tool": [
+        [
+          {
+            "node": "Project Creator Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Git - project status": {
+      "ai_tool": [
+        [
+          {
+            "node": "Project Creator Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "List files in GitHub": {
+      "ai_tool": [
+        [
+          {
+            "node": "Project Creator Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a file in GitHub": {
+      "ai_tool": [
+        [
+          {
+            "node": "Project Creator Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get a file in GitHub": {
+      "ai_tool": [
+        [
+          {
+            "node": "Project Creator Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Base64 Decode": {
+      "ai_tool": [
+        [
+          {
+            "node": "Project Creator Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Data from file": {
+      "ai_tool": [
+        [
+          {
+            "node": "Project Creator Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Project Creator Agent": {
+      "main": [
+        []
+      ]
+    },
+    "Simple Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "Project Creator Agent",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit a file in GitHub": {
+      "ai_tool": [
+        [
+          {
+            "node": "Project Creator Agent",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "6762612e-fed8-4e80-bb0a-ffad5ba68af0",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a7729832a7edb4cb6efed0410e61f6c12727aeb0569e4fd69fcf43ab4f9d52a8"
+  },
+  "id": "A49zj2eySxyfSQO2",
+  "tags": []
+}
